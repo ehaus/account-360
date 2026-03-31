@@ -24,7 +24,7 @@ const fmt$ = (v: number, d: number=2) => "$"+Number(v).toLocaleString("en-US",{m
 const fmtK = (v: number) => v>=1000?`$${(v/1000).toFixed(0)}k`:`$${v}`;
 
 // ── TypeScript Interfaces ─────────────────────────────────────────────────────
-interface Action { label:string; icon:string; section:string; danger?:boolean; variant?:string; reason?:string; }
+interface Action { label:string; icon:string; section?:string; danger?:boolean; variant?:string; reason?:string; }
 interface Charge {
   id:string; name:string; model:string; uom:string;
   included:number|null; currentQty:number|null; rate:string;
@@ -551,7 +551,7 @@ function ActionsDropdown({actions, label="⚡ Actions", align="right", secondary
     setOpen(o=>!o);
   };
 
-  const sections = [...new Set(actions.map(a=>a.section))];
+  const sections = [...new Set(actions.map(a=>a.section??("lifecycle")))].filter(Boolean);
 
   return (
     <>
