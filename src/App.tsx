@@ -20,11 +20,44 @@ const ct = {
   darkDeep:"#011627", darkest:"#111925", teal:"#2dd4bf",
 };
 const font = "'Sofia Pro','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
-const fmt$ = (v,d=2) => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtK = v => v>=1000?`$${(v/1000).toFixed(0)}k`:`$${v}`;
+const fmt$ = (v: number, d: number=2) => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtK = (v: number) => v>=1000?`$${(v/1000).toFixed(0)}k`:`$${v}`;
+
+// ── TypeScript Interfaces ─────────────────────────────────────────────────────
+interface Action { label:string; icon:string; section:string; danger?:boolean; variant?:string; reason?:string; }
+interface Charge {
+  id:string; name:string; model:string; uom:string;
+  included:number|null; currentQty:number|null; rate:string;
+  currentAmt:number; trend:string|null; hasChart:boolean;
+}
+interface Product {
+  id:string; name:string; type:string; status:string;
+  tcv:number|null; billed:number|null; mrr:number|null;
+  term:string; renewalDays?:number|null;
+  parentProduct?:string;
+  charges:Charge[];
+  usageHistory?:Record<string,{m:string;qty:number;amt:number}[]>;
+  creditTotal?:number; creditUsed?:number; creditRemaining?:number;
+  burnRate?:number; projectedExhaustionDays?:number;
+  deliveryDate?:string; warrantyExpiry?:string;
+}
+interface Opp    { name:string; stage:string; amount:number; closeDate:string; }
+interface Activity { type:string; desc:string; date:string; rep:string; }
+interface Contact  { name:string; title:string; role:string; email:string; }
+interface Invoice  { id:string; period:string; amt:number; status:string; due:string; daysOut:number; paid:string|null; }
+interface Forecast { period?:string; m?:string; est:number; hasOv:boolean; }
+interface Account {
+  id:string; name:string; industry:string; owner:string;
+  health:string; healthScore:number;
+  arr:number; openARR:number; renewalDays:number|null; renewalDate:string|null;
+  phone:string; website:string; summary:string;
+  openOpps:Opp[]; recentActivity:Activity[]; contacts:Contact[];
+  monetizationModel:string; products:Product[];
+  invoices:Invoice[]; actions:Action[]; forecast:Forecast[];
+}
 
 // ── Account Data ──────────────────────────────────────────────────────────────
-const ACCOUNTS = {
+const ACCOUNTS: Record<string, Account> = {
   "pets": {
     id:"pets", name:"Pets.com", industry:"Retail", owner:"Sarah Chen",
     health:"upsell", healthScore:72,
@@ -290,7 +323,7 @@ const ACCOUNTS = {
 const ACCOUNT_LIST = ["pets","acme","retailco","finserv","manutech"];
 
 // ── Shared Components ─────────────────────────────────────────────────────────
-function Badge({color="gray",children,small=false}){
+function Badge({color="gray",children,small=false}:{color?:string;children:React.ReactNode;small?:boolean}){
   const v={
     green:{bg:ct.greenBg,  color:ct.green,    border:ct.greenBorder},
     blue: {bg:ct.purpleBg, color:ct.purple,   border:ct.purpleBorder},
@@ -340,11 +373,11 @@ function Btn({children,onClick,variant="primary",small=false,style,disabled=fals
   );
 }
 
-function SectionLabel({children}){
+function SectionLabel({children}:{children:React.ReactNode}){
   return <div style={{fontSize:11,fontWeight:700,color:ct.labelMuted,textTransform:"uppercase",letterSpacing:0.6,marginBottom:10,fontFamily:font}}>{children}</div>;
 }
 
-function MetricCard({label,value,sub,accent,alert=false}){
+function MetricCard({label,value,sub,accent,alert=false}:{label:string;value:string;sub?:string;accent:string;alert?:boolean}){
   return (
     <div style={{flex:1,minWidth:130,background:alert?ct.redBg:ct.bgCard,
       border:`1px solid ${alert?ct.redBorder:ct.border}`,borderTop:`3px solid ${alert?ct.red:accent}`,
@@ -357,7 +390,7 @@ function MetricCard({label,value,sub,accent,alert=false}){
 }
 
 // Health score badge
-function HealthPill({health,score}){
+function HealthPill({health,score}:{health:string;score:number}){
   const cfg={
     "healthy":   {bg:ct.greenBg,  color:ct.green,  border:ct.greenBorder, label:"Healthy",    icon:"✓"},
     "upsell":    {bg:"#FFF8EC",   color:"#D97706", border:"#FDE68A",       label:"Upsell Opp", icon:"⚡"},
@@ -384,7 +417,7 @@ function HealthPill({health,score}){
 }
 
 // Monetization model badge
-function ModelBadge({type}){
+function ModelBadge({type}:{type:string}){
   const cfg={
     "Subscription + Usage": {color:"blue",  icon:"🔄"},
     "Subscription":         {color:"blue",  icon:"🔄"},
@@ -397,11 +430,11 @@ function ModelBadge({type}){
 }
 
 // ── Nav account switcher ──────────────────────────────────────────────────────
-function AccountSwitcher({current,onChange}){
+function AccountSwitcher({current,onChange}:{current:string;onChange:(id:string)=>void}){
   const [open,setOpen]=useState(false);
-  const ref=useRef();
+  const ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{
-    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false)};
+    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false)};
     document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
   },[]);
   const acc=ACCOUNTS[current];
@@ -448,9 +481,9 @@ function AccountSwitcher({current,onChange}){
 // ── Lifecycle Actions ─────────────────────────────────────────────────────────
 
 
-function getProductActions(product) {
+function getProductActions(product: Product): Action[] {
   const type = product.type;
-  const actions = [];
+  const actions: Action[] = [];
   if(type.includes("Subscription")) {
     actions.push({label:"Renew",               icon:"🔄", section:"lifecycle"});
     actions.push({label:"Amend (qty/price)",   icon:"✏️", section:"lifecycle"});
@@ -481,16 +514,18 @@ function getProductActions(product) {
   return actions;
 }
 
-function ActionsDropdown({actions, label="⚡ Actions", align="right", secondary=false}) {
+function ActionsDropdown({actions, label="⚡ Actions", align="right", secondary=false}:{
+  actions:Action[]; label?:string; align?:string; secondary?:boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({top:0, left:0, width:220});
-  const btnRef = useRef();
-  const menuRef = useRef();
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(()=>{
-    const h = e => {
-      if(btnRef.current&&!btnRef.current.contains(e.target)&&
-         menuRef.current&&!menuRef.current.contains(e.target)) setOpen(false);
+    const h = (e:MouseEvent) => {
+      if(btnRef.current&&!btnRef.current.contains(e.target as Node)&&
+         menuRef.current&&!menuRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -573,7 +608,7 @@ function ActionsDropdown({actions, label="⚡ Actions", align="right", secondary
 }
 
 // ── Account Health Header ────────────────────────────────────────────────────
-function HealthHeader({acc}){
+function HealthHeader({acc}:{acc:Account}){
   return (
     <div style={{background:ct.bgCard,border:`1px solid ${ct.border}`,borderRadius:12,
       padding:"16px 20px",marginBottom:16,boxShadow:"0 1px 3px rgba(17,25,37,0.05)"}}>
@@ -616,7 +651,7 @@ function HealthHeader({acc}){
 }
 
 // ── Action Rail ───────────────────────────────────────────────────────────────
-function ActionRail({acc}){
+function ActionRail({acc}:{acc:Account}){
   if(!acc.actions?.length) return null;
   return (
     <div style={{background:ct.bgCard,border:`1px solid ${ct.border}`,borderRadius:12,
@@ -639,7 +674,7 @@ function ActionRail({acc}){
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-function Tabs({active,onChange,tabs}){
+function Tabs({active,onChange,tabs}:{active:string;onChange:(id:string)=>void;tabs:{id:string;label:string}[]}){
   return (
     <div style={{display:"flex",borderBottom:`1px solid ${ct.border}`,marginBottom:20}}>
       {tabs.map(t=>(
@@ -658,7 +693,7 @@ function Tabs({active,onChange,tabs}){
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB: OVERVIEW
 // ══════════════════════════════════════════════════════════════════════════════
-function OverviewTab({acc}){
+function OverviewTab({acc}:{acc:Account}){
   const totalBilled=acc.products.reduce((s,p)=>s+(p.billed||0),0);
   const openInvoiceAmt=acc.invoices.filter(i=>i.status==="Open").reduce((s,i)=>s+i.amt,0);
   const activeProducts=acc.products.filter(p=>p.status==="Active"||p.status==="Delivered");
@@ -735,16 +770,16 @@ function OverviewTab({acc}){
             {[
               {label:"Lifetime Billed",   value:fmt$(totalBilled), color:ct.text},
               {label:"Open Invoice",       value:openInvoiceAmt>0?fmt$(openInvoiceAmt):"None", color:openInvoiceAmt>0?ct.orange:ct.green},
-              acc.arr>0&&{label:"ARR",     value:fmt$(acc.arr,0),   color:ct.text},
-              acc.renewalDate&&{label:"Renewal Date", value:acc.renewalDate, color:acc.renewalDays<90?ct.red:ct.text},
-              acc.products.find(p=>p.burnRate)&&{label:"Monthly Burn Rate", value:fmt$(acc.products.find(p=>p.burnRate).burnRate,0), color:ct.orange},
-              acc.products.find(p=>p.creditRemaining!=null)&&{label:"Credit Remaining", value:fmt$(acc.products.find(p=>p.creditRemaining!=null).creditRemaining,0), color:ct.orange},
-            ].filter(Boolean).map((item,i)=>(
+              acc.arr>0?{label:"ARR", value:fmt$(acc.arr,0), color:ct.text}:null,
+              acc.renewalDate?{label:"Renewal Date", value:acc.renewalDate, color:(acc.renewalDays??999)<90?ct.red:ct.text}:null,
+              (()=>{ const p=acc.products.find(p=>p.burnRate); return p?{label:"Monthly Burn Rate",value:fmt$(p.burnRate!,0),color:ct.orange}:null; })(),
+              (()=>{ const p=acc.products.find(p=>p.creditRemaining!=null); return p?{label:"Credit Remaining",value:fmt$(p.creditRemaining!,0),color:ct.orange}:null; })(),
+            ].filter(Boolean).map((item,i)=>{ const it = item as {label:string;value:string;color:string}; return (
               <div key={i}>
-                <div style={{fontSize:10,color:ct.labelMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,fontFamily:font,marginBottom:2}}>{item.label}</div>
-                <div style={{fontSize:14,fontWeight:700,color:item.color,fontFamily:font}}>{item.value}</div>
+                <div style={{fontSize:10,color:ct.labelMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,fontFamily:font,marginBottom:2}}>{it.label}</div>
+                <div style={{fontSize:14,fontWeight:700,color:it.color,fontFamily:font}}>{it.value}</div>
               </div>
-            ))}
+            );})}
           </div>
         </div>
 
@@ -787,7 +822,7 @@ function OverviewTab({acc}){
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB: PRODUCTS & ENTITLEMENTS
 // ══════════════════════════════════════════════════════════════════════════════
-function ProductsTab({acc,onDrillCharge}){
+function ProductsTab({acc,onDrillCharge}:{acc:Account;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
   const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
   const tdrStyle={...tdStyle,textAlign:"right"};
   return (
@@ -797,7 +832,7 @@ function ProductsTab({acc,onDrillCharge}){
   );
 }
 
-function ProductCard({product:p,onDrillCharge}){
+function ProductCard({product:p,onDrillCharge}:{product:Product;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
   const [exp,setExp]=useState(true);
   const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
   const tdrStyle={...tdStyle,textAlign:"right"};
@@ -889,7 +924,7 @@ function ProductCard({product:p,onDrillCharge}){
   );
 }
 
-function TrendBadge({t}){
+function TrendBadge({t}:{t:string}){
   if(t==="up")   return <span style={{color:ct.orange,fontSize:11,fontWeight:600,fontFamily:font}}>↑ Rising</span>;
   if(t==="down") return <span style={{color:ct.red,  fontSize:11,fontWeight:600,fontFamily:font}}>↓ Falling</span>;
   return <span style={{color:ct.textLight,fontSize:11,fontFamily:font}}>— Stable</span>;
@@ -898,7 +933,7 @@ function TrendBadge({t}){
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB: USAGE & SIGNALS
 // ══════════════════════════════════════════════════════════════════════════════
-function UsageTab({acc,onDrillCharge}){
+function UsageTab({acc,onDrillCharge}:{acc:Account;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
   const usageProducts=acc.products.filter(p=>p.usageHistory);
   if(usageProducts.length===0){
     return (
@@ -918,20 +953,20 @@ function UsageTab({acc,onDrillCharge}){
   );
 }
 
-function Sparkline({data,color,included}){
+function Sparkline({data,color,included}:{data:{m:string;qty:number;amt:number}[];color:string;included:number|null}){
   return (
     <ResponsiveContainer width="100%" height={52}>
       <ComposedChart data={data} margin={{top:4,right:2,left:2,bottom:0}}>
         {included>0&&<ReferenceLine y={included} stroke={ct.orange} strokeDasharray="3 2" strokeWidth={1}/>}
         <Bar dataKey="qty" fill={color} opacity={.75} radius={[2,2,0,0]} isAnimationActive={false}/>
         <XAxis dataKey="m" hide/><YAxis hide domain={['auto','auto']}/>
-        <Tooltip contentStyle={{fontSize:10,padding:"6px 10px",background:ct.sfNavBg,border:"none",color:"#e0eaf8",borderRadius:6}} formatter={v=>[v.toLocaleString(),"Qty"]} labelStyle={{fontSize:10,color:"#7a9cc0"}}/>
+        <Tooltip contentStyle={{fontSize:10,padding:"6px 10px",background:ct.sfNavBg,border:"none",color:"#e0eaf8",borderRadius:6}} formatter={(v:number)=>[v.toLocaleString(),"Qty"]} labelStyle={{fontSize:10,color:"#7a9cc0"}}/>
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-function UsageSignalCard({charge:ch,product:p,onDrillCharge}){
+function UsageSignalCard({charge:ch,product:p,onDrillCharge}:{charge:Charge;product:Product;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
   const histKey=ch.id;
   const data=(p.usageHistory&&p.usageHistory[histKey])||[];
   if(!data.length) return null;
@@ -1044,8 +1079,8 @@ function UsageSignalCard({charge:ch,product:p,onDrillCharge}){
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB: BILLING
 // ══════════════════════════════════════════════════════════════════════════════
-function BillingTab({acc}){
-  const [expanded,setExpanded]=useState(null);
+function BillingTab({acc}:{acc:Account}){
+  const [expanded,setExpanded]=useState<string|null>(null);
   const totalBilled=acc.invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amt,0);
   const openAmt=acc.invoices.filter(i=>i.status!=="Paid").reduce((s,i)=>s+i.amt,0);
   const totalForecast=acc.forecast.reduce((s,f)=>s+f.est,0);
@@ -1117,7 +1152,7 @@ function BillingTab({acc}){
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB: COMMERCIAL
 // ══════════════════════════════════════════════════════════════════════════════
-function CommercialTab({acc}){
+function CommercialTab({acc}:{acc:Account}){
   const hasSubscription=acc.products.some(p=>p.type.includes("Subscription"));
   return (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -1130,16 +1165,16 @@ function CommercialTab({acc}){
               {[
                 ["Product Type",   p.type],
                 ["Term",           p.term||"—"],
-                ["Billing Model",  p.charges.map(c=>c.model).filter((v,i,a)=>a.indexOf(v)===i).join(", ")],
+                ["Billing Model",  p.charges.map((c:Charge)=>c.model).filter((v:string,i:number,a:string[])=>a.indexOf(v)===i).join(", ")],
                 p.tcv&&["TCV",     fmt$(p.tcv,0)],
                 p.renewalDays&&["Renewal",`In ${p.renewalDays} days (${acc.renewalDate})`],
                 p.warrantyExpiry&&["Warranty", `Expires ${p.warrantyExpiry}`],
-              ].filter(Boolean).map(([k,v])=>(
-                <div key={k} style={{display:"flex",gap:8,padding:"3px 0",fontSize:12,fontFamily:font}}>
+              ].filter(Boolean).map((row,i)=>{ const [k,v]=row as [string,string]; return (
+                <div key={k+i} style={{display:"flex",gap:8,padding:"3px 0",fontSize:12,fontFamily:font}}>
                   <span style={{width:120,color:ct.labelMuted,fontWeight:600,flexShrink:0}}>{k}</span>
                   <span style={{color:ct.text}}>{v}</span>
                 </div>
-              ))}
+              );})}
             </div>
           ))}
         </div>
@@ -1186,7 +1221,7 @@ function CommercialTab({acc}){
 // ══════════════════════════════════════════════════════════════════════════════
 // CHARGE DRILL-DOWN
 // ══════════════════════════════════════════════════════════════════════════════
-function ChargeViewer({charge,onBack,accName}){
+function ChargeViewer({charge,onBack,accName}:{charge:Charge&{productName?:string;usageHistory?:Product["usageHistory"]};onBack:()=>void;accName:string}){
   const [period,setPeriod]=useState(12);
   const [tab,setTab]=useState("summary");
   const rawData=(charge.usageHistory&&charge.usageHistory[charge.id])||[];
@@ -1199,7 +1234,7 @@ function ChargeViewer({charge,onBack,accName}){
   const amts=chartData.map(d=>d.amt), qtys=chartData.map(d=>d.qty);
   const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
   const tdrStyle={...tdStyle,textAlign:"right"};
-  const CustomTip=({active,payload,label})=>{
+  const CustomTip=({active,payload,label}:{active?:boolean;payload?:{color:string;name:string;value:number}[];label?:string})=>{
     if(!active||!payload?.length) return null;
     return <div style={{background:ct.sfNavBg,borderRadius:8,padding:"10px 14px",fontSize:12,color:"#e0eaf8",fontFamily:font}}>
       <div style={{fontWeight:700,marginBottom:6}}>{label}</div>
