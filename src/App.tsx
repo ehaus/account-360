@@ -823,8 +823,8 @@ function OverviewTab({acc}:{acc:Account}){
 // TAB: PRODUCTS & ENTITLEMENTS
 // ══════════════════════════════════════════════════════════════════════════════
 function ProductsTab({acc,onDrillCharge}:{acc:Account;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
-  const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
-  const tdrStyle={...tdStyle,textAlign:"right"};
+  const tdStyle:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
+  const tdrStyle:React.CSSProperties={...tdStyle,textAlign:"right"};
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       {acc.products.map(p=><ProductCard key={p.id} product={p} onDrillCharge={onDrillCharge}/>)}
@@ -834,8 +834,8 @@ function ProductsTab({acc,onDrillCharge}:{acc:Account;onDrillCharge:(ch:Charge&{
 
 function ProductCard({product:p,onDrillCharge}:{product:Product;onDrillCharge:(ch:Charge&{productName:string;usageHistory?:Product["usageHistory"]})=>void}){
   const [exp,setExp]=useState(true);
-  const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
-  const tdrStyle={...tdStyle,textAlign:"right"};
+  const tdStyle:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
+  const tdrStyle:React.CSSProperties={...tdStyle,textAlign:"right"};
   const isOneTime=p.type==="One-Time Purchase";
   const headerBg=p.parentProduct?ct.purpleBg:ct.bgCool;
   const accentColor=p.parentProduct?ct.purpleMid:ct.purple;
@@ -1084,8 +1084,8 @@ function BillingTab({acc}:{acc:Account}){
   const totalBilled=acc.invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amt,0);
   const openAmt=acc.invoices.filter(i=>i.status!=="Paid").reduce((s,i)=>s+i.amt,0);
   const totalForecast=acc.forecast.reduce((s,f)=>s+f.est,0);
-  const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
-  const tdrStyle={...tdStyle,textAlign:"right"};
+  const tdStyle:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
+  const tdrStyle:React.CSSProperties={...tdStyle,textAlign:"right"};
 
   return (
     <>
@@ -1232,8 +1232,8 @@ function ChargeViewer({charge,onBack,accName}:{charge:Charge&{productName?:strin
   const totQty=chartData.reduce((s,d)=>s+d.qty,0);
   const totAmt=chartData.reduce((s,d)=>s+d.amt,0);
   const amts=chartData.map(d=>d.amt), qtys=chartData.map(d=>d.qty);
-  const tdStyle={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
-  const tdrStyle={...tdStyle,textAlign:"right"};
+  const tdStyle:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid ${ct.borderLight}`,fontSize:12,fontFamily:font,color:ct.text};
+  const tdrStyle:React.CSSProperties={...tdStyle,textAlign:"right"};
   const CustomTip=({active,payload,label}:{active?:boolean;payload?:{color:string;name:string;value:number}[];label?:string})=>{
     if(!active||!payload?.length) return null;
     return <div style={{background:ct.sfNavBg,borderRadius:8,padding:"10px 14px",fontSize:12,color:"#e0eaf8",fontFamily:font}}>
